@@ -6,17 +6,11 @@
   (reduce (fn [fst snd] snd) nil seqs))
 
 (fn [fullseq] 
-  (loop [parseq
-         fullseq]
+  (loop [parseq fullseq]
     (let [more (rest parseq)]
       (if (empty? more)
         (first parseq)
         (recur more)))))
-
-(defn clj19 [seqs]
-  (if (= (count seqs) 1)
-    (first seqs)
-    (clj19 (rest seqs))))
 
 ;; Problem 20
 
@@ -92,7 +86,7 @@
 
 ;; Problem 32
 
-(fn [beg end]
+(fn range' [beg end]
   (loop [n   (dec end)
          col []]
     (if (> beg n)
@@ -111,3 +105,92 @@
 
 (fn flatten' [col]
   (reduce #(concat %1 (if (sequential? %2) (flatten' %2) [%2])) []  col))
+
+;; Intro to Iterate
+
+'(1 4 7 10 13)
+
+;; Compress a Sequence
+
+(fn compress [col]
+  (let [repeat-elem? #(= %2 (first %1))
+        add-new #(if (repeat-elem? %1 %2) %1 (cons %2 %1))]
+    (reverse (reduce add-new [] col))))
+            
+;; Interleave two Seqs
+
+(fn interleave' [col1 col2]
+  (mapcat #(list %1 %2) col1 col2))
+
+;; Replicate a Seq
+
+(fn replicate' [col n]
+  (mapcat #(repeat n %1) col))
+
+;; Interpose a Seq
+
+(fn interpose' [item col]
+  (rest (reverse (reduce #(cons %2 (cons item %1)) [] col))))
+
+;; Destructring Intro
+
+[c e]
+
+;; Drop Nth
+
+(fn drop-nth [col n]
+  (loop [coll col
+         i    1
+         acc  []]
+    (if (empty? coll)
+      (reverse acc)
+      (let [newacc (if (= 0 (rem i n)) acc (cons (first coll) acc))]
+        (recur (rest coll) (inc i) newacc)))))
+        
+;; Split Col
+
+#(list (take %1 %2) (drop %1 %2))
+
+;; Advanced Destructring
+
+(range 1 6)
+
+;; Half-Truth
+
+(fn half-truth [& bools]
+  (boolean (and (some #(boolean %) bools)
+                (some #(not %) bools))))
+
+;; Map Construction
+
+#(apply hash-map (interleave %1 %2))
+
+;; GCD
+
+(fn GCD [a b]
+  (if (= (rem x y) 0)
+    y
+    (recur y (rem x y))))
+
+;; Set Intersection
+
+(fn intersection' [set1 set2]
+  (set (filter #(contains? set2 %) set1)))
+
+;; iterate
+
+(fn iterate' [f n]
+  (lazy-seq
+   (cons n (iterate' f (f n)))))
+
+;; Closures
+
+(fn make-exp [exp]
+  #(int (Math/pow % exp)))
+
+;; Product Digits
+
+(fn digit-product [a b]
+  (map #(Integer/parseInt (str %)) (str (* a b))))
+
+
