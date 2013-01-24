@@ -193,4 +193,52 @@
 (fn digit-product [a b]
   (map #(Integer/parseInt (str %)) (str (* a b))))
 
+;; Cartesian
 
+(fn cartesian [col1 col2]
+  (into #{} (mapcat (fn [elem] (map #(vector elem %) col2)) col1)))
+
+;; group-by
+
+(fn group-by' [f coll]
+  (let [keys       (set (map f coll))
+        get-by-key (fn [elem]
+                     (filter #(= (f %) elem) coll))
+        add-vals   (fn [acc elem]
+                     (cons elem (cons (get-by-key elem) acc)))]
+    (apply hash-map (reduce add-vals () keys))))
+  
+;; Symmetric Difference
+
+(fn sym-diff [set1 set2]
+  (clojure.set/union
+   (clojure.set/difference set1 set2)
+   (clojure.set/difference set2 set1)))
+
+;; Binary
+
+(fn eval-binary [num]
+  (let [powers (take (count num) (iterate #(* 2 %) 1))
+        bins   (reverse (map #(Integer/parseInt (str %)) num))
+        bin-pows (map * powers bins)]
+    (reduce + 0 bin-pows)))
+    
+;; Looking Class
+
+Class
+
+;; dot product
+
+(fn dot-product [v1 v2]
+  (reduce + (map * v1 v2)))
+
+;; Pascal's triangle
+
+(fn pascals [n]
+  (loop [curr-n   (dec n)
+         curr-row [1]]
+    (if (= curr-n 0)
+      curr-row
+      (let [extended-row (cons 0 curr-row)
+            new-row      (map + extended-row (reverse extended-row))]
+        (recur (dec curr-n) new-row)))))
