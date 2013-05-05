@@ -1471,53 +1471,81 @@ into move-up, but this works"
 
 ;; Analyze Reversi
 
-(fn reversi [board type]
-  (let [indexed-board (vec (map-indexed
-                            (fn [y row]
-                              (vec (map-indexed
-                                    (fn [x elem]
-                                      [elem [y x]]) row)))
-                            board))
-        is-type     (fn [elem]
-                      (= (first elem) type))
-        is-empty    (fn [elem]
-                      (= (first elem) 'e))
-        is-other    (fn [elem]
-                      (= (first elem)
-                         (if (= type 'w) 'b 'w)))
-        moves       (list
-                     [-1 -1]
-                     [1 1]
-                     [1 -1]
-                     [-1 1]
-                     [0 -1]
-                     [0 1]
-                     [1 0]
-                     [-1 0])
-        make-move  (partial map +)
-        elems-of-type (mapcat #(filter is-type %) indexed-board)
-        try-move   (fn [move [val coord :as elem]]
-                     (if (empty? elem)
-                       ()
-                       (->>
-                        (make-move coord move)
-                        (get-in indexed-board))))
-        repeat-move  (fn [move elem]
-                       (->>
-                        elem
-                        (iterate (partial try-move move))
-                        rest
-                        (split-with is-other)))
-        get-valid  (fn [move elem]
-                     (let [[fst snd] (repeat-move move elem)]
-                       (if (is-other (first fst))
-                         (first snd)
-                         nil)))
-        moves-from-spot (fn [elem]
-                          (map #(get-valid % elem) moves))
-        all-valid (->>
-                   (mapcat moves-from-spot elems-of-type)
-                   (remove nil?)
-                   (map second)
-                   set)]
-    all-valid))
+(fn reversi [board piece-type]
+  (let [indexed-board
+        (vec (map-indexed
+              (fn [y row]
+                (vec (map-indexed
+                      (fn [x elem]
+                        [elem [y x]]) row)))
+              board))
+
+        is-type
+        (fn [elem]
+          (= (first elem) piece-type))
+
+        is-empty
+        (fn [elem]
+          (= (first elem) 'e))
+
+        is-other
+        (fn [elem]
+          (= (first elem)
+             (if (= piece-type 'w) 'b 'w)))
+
+        moves
+        (list
+         [-1 -1]
+         [1 1]
+         [1 -1]
+         [-1 1]
+         [0 -1]
+         [0 1]
+         [1 0]
+         [-1 0])
+
+        make-move
+        (partial map +)
+
+        elems-of-type
+        (mapcat #(filter is-type %) indexed-board)
+
+        try-move
+        (fn [move [val coord :as elem]]
+          (if (empty? elem)
+            ()
+            (->>
+             (make-move coord move)
+             (get-in indexed-board))))
+
+        repeat-move
+        (fn [move elem]
+          (->>
+           elem
+           (iterate (partial try-move move))
+           rest
+           (split-with is-other)))
+
+        validate-move
+        (fn [move elem]
+          (let [[intermediates empties] (repeat-move move elem)]
+            ;; A move is only valid if there are "other" pieces
+            ;; between here and an empty square on the board
+            (if (and (is-empty (first empties))
+                     (is-other (first intermediates)))
+              (let [destination (second (first empties))
+                    flipped (set (map second intermediates))]
+                [destination flipped])
+              nil)))
+
+        find-moves-from-spot
+        (fn [elem]
+          (map #(validate-move % elem) moves))
+
+        all-valid-moves
+        (->>
+         (mapcat find-moves-from-spot elems-of-type)
+         (remove nil?)
+         (into {}))]
+
+    all-valid-moves))
