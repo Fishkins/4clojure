@@ -1472,19 +1472,19 @@ into move-up, but this works"
 ;; Analyze Reversi
 
 (fn reversi [board type]
-  (let [indexed-board (map-indexed
-                       (fn [y row]
-                         (map-indexed
-                          (fn [x elem]
-                            [elem [y x]]) row))
-                       board)
-        swapped      (vec (apply map vector indexed-board))
+  (let [indexed-board (vec (map-indexed
+                            (fn [y row]
+                              (vec (map-indexed
+                                    (fn [x elem]
+                                      [elem [y x]]) row)))
+                            board))
         is-type     (fn [elem]
                       (= (first elem) type))
         is-empty    (fn [elem]
                       (= (first elem) 'e))
         is-other    (fn [elem]
-                      (not (or (is-empty elem) (is-type elem))))
+                      (= (first elem)
+                         (if (= type 'w) 'b 'w)))
         moves       (list
                      [-1 -1]
                      [1 1]
@@ -1515,5 +1515,9 @@ into move-up, but this works"
                          nil)))
         moves-from-spot (fn [elem]
                           (map #(get-valid % elem) moves))
-        all-valid (set (mapcat moves-from-spot elems-of-type))]
+        all-valid (->>
+                   (mapcat moves-from-spot elems-of-type)
+                   (remove nil?)
+                   (map second)
+                   set)]
     all-valid))
