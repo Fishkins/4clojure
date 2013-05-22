@@ -1,6 +1,4 @@
-
 ;; Problem 19
-
 #(first (reverse %))
 
 (fn [seqs] 
@@ -1549,3 +1547,93 @@ into move-up, but this works"
          (into {}))]
 
     all-valid-moves))
+
+;; Squares squared 
+
+(defn square-square [start end]
+  "Starts by making a string of the required nums/symbols, then process to find the locations to insert them on the board. This could be more efficient if I could generate each row in one swoop, but I think that would require some mathematical insight I haven't figured out."
+
+  (let [square
+        #(int (Math/pow %1 2))
+
+        nums
+        (->>
+         start
+         (iterate square)
+         (take-while #(>= end %))
+         (apply str))
+
+        num-count
+        (count nums)
+        
+        side-size
+        (->>
+         num-count
+         Math/sqrt
+         Math/ceil
+         int)
+
+        num-rows
+        (dec (* 2 side-size))
+
+        padded-count
+        (square side-size)
+
+        padded-nums
+        (->>
+         (repeat (- padded-count num-count) "*")
+         (apply str)
+         (str nums))
+
+        mid-point
+        (int (/ num-rows 2))
+
+        ;; if sqrt n is odd, the first num starts in the very middle.
+        ;; else, it starts in middle of row just above the middle row.
+        starting-pos
+        (if (odd? side-size)
+          [mid-point mid-point]
+          [(dec mid-point) mid-point])
+
+        blank-board
+        (vec (repeat num-rows (vec (repeat num-rows " "))))
+
+        update-spot
+        (fn [pos val] 
+          (fn [board]
+            (update-in board pos (fn [x] val))))
+
+        move-stream
+        (->>
+         [[1 1]
+          [1 -1]
+          [-1 -1]
+          [-1 1]]
+         repeat
+         (apply concat))
+
+        ;; Once we've gone along half of the diamond, i.e. around 2 sides,
+        ;; it's bigger and we have to go one move farther for next 2 sides.
+        times-to-repeat-moves
+        (mapcat #(list % %) (next (range)))
+        
+        all-moves
+        (mapcat
+         (fn [index mv] (repeat index mv))
+         times-to-repeat-moves
+         move-stream)
+
+        make-move
+        (partial map +)
+
+        position-stream
+        (reductions make-move starting-pos all-moves)
+
+        all-updates
+        (map update-spot position-stream padded-nums)]
+
+    (->>
+     all-updates
+     (reduce #(%2 %1) blank-board)
+     (map #(apply str %))
+     vec)))
