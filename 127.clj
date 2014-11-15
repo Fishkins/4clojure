@@ -1,17 +1,4 @@
 ;; Love Triangle
-;; Start looking for squares = to max length and look for triangles, then work down.
-(declare __)
-(declare parse-board)
-(declare biggest-triangle)
-(declare triangle-of-size?)
-(declare get-sub-board)
-(declare triangle-size)
-(declare bottom-left-triangle-size)
-(declare top-center-triangle-size)
-(declare transpose)
-(defn __ [rocks]
-  (let [board (parse-board rocks)]
-    (biggest-triangle board)))
 
 (defn parse-board [rocks]
     (let [to-bits
@@ -37,36 +24,6 @@
 
       (vec (map (comp vec pad-bin) uneven-rocks))))
 
-(defn biggest-triangle [board]
-  (loop [len (min (count (board 0)) (count board))]
-    (let [size (triangle-of-size? board len)]
-      (cond (> size 0) size
-            (>= 2 len) nil
-            :else (recur (dec len))))))
-
-(defn triangle-of-size? [board side]
-  (let [sizes (for [y-off (range (inc (- (count board) side)))
-                    x-off (range (inc (- (count (board 0)) side)))]
-                (triangle-size (get-sub-board board x-off y-off side)))]
-    (if (empty? sizes)
-      0
-      (apply max sizes))))
-
-(defn get-sub-board [board x-off y-off side]
-  (vec (map #(vec (take side (drop x-off %)))
-            (take side (drop y-off board)))))
-
-(defn triangle-size [board-piece]
-  (let [rotations [
-                   identity
-                   (comp vec reverse)
-                   #(map (comp vec reverse) %)
-                   (comp vec reverse #(map (comp vec reverse) %))
-                   ]
-        orientations (for [orientation rotations]
-                       (vec (orientation board-piece)))]
-    (apply max (map bottom-left-triangle-size orientations))))
-
 (defn bottom-left-triangle-size [board-piece]
   (let [len (count board-piece)
         triangle-parts (for [x (range len)
@@ -87,17 +44,77 @@
       (count triangle-parts)
       0)))
 
-(defn transpose [board]
-  (vec (apply map (comp vec list) board)))
+(defn all-sub-boards [board]
+  (let [height (count board)
+        width  (count (board 0))]
+    (for [
+          y-side (range 2 (inc height))
+          x-side (range 2 (inc width))
+          y-off  (range (inc (- height y-side)))
+          x-off  (range (inc (- width x-side)))
+          ]
+      (vec (map #(vec (take x-side (drop x-off %1)))
+                (take y-side (drop y-off board)))))))
 
+(defn biggest-triangle [rocks]
+  (let [
+        board (parse-board rocks)
+
+        transpose
+        #(vec (apply map (comp vec list) %))
+
+        basic-rotations [
+                         identity
+                         (comp vec reverse)
+                         #(map (comp vec reverse) %)
+                         (comp vec reverse #(map (comp vec reverse) %))
+                         ]
+
+        rotations
+        (concat basic-rotations (map #(comp transpose %) basic-rotations))
+
+        orientations
+        (for [rotation rotations]
+          (vec (rotation board)))
+
+        pieces
+        (mapcat all-sub-boards orientations)
+
+        corner-sizes
+        (for [piece pieces
+              ;; only consider squares
+              :when (= (count piece) (count (piece 0)))
+              ]
+          (bottom-left-triangle-size piece))
+
+        side-sizes
+        (for [piece pieces
+              ;; sides need the following ratio to form a triangle
+              :when (= (- (* (count piece) 2) 1) (count (piece 0)))
+              ]
+          (top-center-triangle-size piece))
+        
+        sizes
+        (concat side-sizes corner-sizes)
+
+        max-size
+        (apply max sizes)
+        ]
+    (if (= 0 max-size)
+      nil
+      max-size))
+  )
 
 ;; Tests
 
-(= 9 (__ [18 7 14 14 6 3]))
-(= 4 (__ [7 3]))
-(= nil (__ [21 10 21 10]))
-(= nil (__ [0 31 0 31 0]))
-(= 6 (__ [17 22 6 14 22]))
-(= 3 (__ [3 3]))
-(= 15 (__ [1 3 7 15 31]))
-(= 10 (__ [15 15 15 15 15]))
+(defn __ [rocks]
+  (biggest-triangle rocks))
+
+;; (= 9 (__ [18 7 14 14 6 3]))
+;; (= 4 (__ [7 3]))
+;; (= nil (__ [21 10 21 10]))
+;; (= nil (__ [0 31 0 31 0]))
+;; (= 6 (__ [17 22 6 14 22]))
+;; (= 3 (__ [3 3]))
+;; (= 15 (__ [1 3 7 15 31]))
+;; (= 10 (__ [15 15 15 15 15]))
