@@ -76,9 +76,8 @@ true
 #(filter odd? %)
 
 ;; Problem 26
-;;TODO: doesn't work
 (fn [n]
-  (let [fibs (lazy-cat [0 1] (map + fibs (rest fibs)))]
+  (let [fibs (map first (iterate (fn [[a b]] [b (+ a b)]) [1 1]))]
   (take n fibs)))
 
 ;; Problem 27
